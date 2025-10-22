@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <cstring>
 
 #include "command_line_read/command_line_read.h"
 #include "file_rw/file_rw.h"
@@ -14,14 +15,16 @@ int main(int argc, const char* argv[])
 {
     CONFIGS cfg = read_configs(argc, argv);
 
-    std::cout << cfg.urls_file_name << "\n" << cfg.target_dir << "\n\n";
+    std::cout << "имя файла с ссылками на файлы:\n" << cfg.urls_file_name 
+        << "\nдиректория для сохранения файлов:\n" << cfg.target_dir 
+        << "\nколичество воркеров (потоков):\n" << cfg.workers_num << "\n\n";
 
     std::vector<std::string> lines = get_file_lines(cfg.urls_file_name);
 
     std::cout << "urls:" << "\n";
     print_file_lines(lines);
 
-    mkdir(string_to_char_pointer(cfg.target_dir), 0777);
+    mkdir(strdup(cfg.target_dir.c_str()), 0777);
 
     /*
     ProcessWorkerPool wp;
@@ -39,15 +42,19 @@ int main(int argc, const char* argv[])
     wp.waiting_processes();
     */
 
-    //std::vector<FileLoader> tasks;
-    ThreadWorkerPool wp(4);
+    ThreadWorkerPool wp(cfg.workers_num);
 
     for (int i = 0; i < lines.size()-1; i++) {
-        URLInformation info(lines[i], char_pointer_to_string("8080"));
+        std::string port_string;
+        port_string.assign("8080");
+        URLInformation info(lines[i], port_string);
+
         char fn[64];
         snprintf(fn, sizeof(fn), "./%s/file_%d", argv[2], i);
-        FileLoader loader(info, char_pointer_to_string(fn));
-        //tasks.push_back(loader);
+        std::string _filename;
+        _filename.assign(fn);
+        FileLoader loader(info, _filename);
+
         wp.add_task_into_queue(loader);
     }
 

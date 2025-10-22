@@ -1,12 +1,7 @@
 #ifndef _COMMAND_LINE_READ
 #define _COMMAND_LINE_READ
 
-#include <functional>
-#include <iostream>
-#include <optional>
-#include <stdexcept>
 #include <string>
-#include <unordered_map>
 
 struct CONFIGS {
     std::string urls_file_name;

@@ -11,21 +11,24 @@
 
 // class ThreadWorkerPool {
 //     public:
+//         ThreadWorkerPool(int max);
+        
+//         void add_task_into_queue(FileLoader loader);
+//         void wait();
+
+//     private:
 //         std::vector<pthread_t> threads;
 //         std::queue<FileLoader> task_queue;
 
 //         pthread_mutex_t mutex;
-//         pthread_cond_t start_signal_cond;
-//         pthread_cond_t finished_cond;
+//         sem_t sem;
+
 //         int active_tasks;
 //         int max_threads;
-//         sem_t sem;
 //         int completed_tasks;
 
-//         void add_task_into_queue(FileLoader loader);
-//         void start();
-//         void wait();
-//         void handler();
+//         static void* handler(void *args);
+//         void work_function();
 // };
 
 ThreadWorkerPool::ThreadWorkerPool(int max) {

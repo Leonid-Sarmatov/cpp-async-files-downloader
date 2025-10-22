@@ -18,26 +18,24 @@
 #include "../file_rw/file_rw.h"
 #include "../logger/logger.h"
 
-#define BUFFER_SIZE 1024
-
 #include "url_file_loader.h"
+
+#define BUFFER_SIZE 1024
 
 // class URLInformation {
 //     public:
+//         URLInformation(std::string, std::string);
+        
 //         std::string fullURL;  // http://localhost/pipapupa
 //         std::string hostname; // localhost
 //         std::string path;     // /pipapupa
 //         std::string port;     // 8080
-
-//         const char* getCharHostName();
-//         const char* getCharPath();
-//         const char* getCharHostNam();
     
 //     private:
 //         void remove_substring(std::string &str, std::string &sbstr);
 //         void remove_http_https(std::string &str);
-//         std::string search_file_name_in_url(std::string &str);
-// }
+//         void search_file_name_in_url(std::string &str);
+// };
 
 
 URLInformation::URLInformation(std::string url, std::string p) {
@@ -75,20 +73,21 @@ void URLInformation::search_file_name_in_url(std::string &str) {
 
 // class FileLoader {
 //     public:
+//         FileLoader(URLInformation, std::string);
+//         void download_file();
+    
+//     private:
 //         const char* hostname;
 //         const char* path;
 //         const char* port;
 //         const char* filename;
-//         void download_file();
-// }
+// };
 
 FileLoader::FileLoader(URLInformation info, std::string fn) {
     hostname = strdup(info.hostname.c_str());
     path = strdup(info.path.c_str());
     port = strdup(info.port.c_str());
     filename = strdup(fn.c_str());
-
-    //std::cout << hostname << ", " << path << ", " << port << ", " << filename << "\n";
 }
 
 void FileLoader::download_file() {

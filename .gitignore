@@ -2,12 +2,3 @@ urls.txt
 urls_big.txt
 bubilda/*
 build/*
-
-Implement URL file downloader with thread pool.
-
-- Add command line arguments parser class (char *args[])
-- Add class for spliting URL to hostname and filepath
-- Implement Makefile for build project
-- Implement the test server with file endpoints
-- Add sript for cleanup download directory
-- Implement thread-based worker pool for concurrent downloads

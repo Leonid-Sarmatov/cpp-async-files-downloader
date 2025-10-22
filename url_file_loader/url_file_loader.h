@@ -10,20 +10,14 @@
 #include <vector>
 #include <fstream>
 
-// int download_file(std::string hostname, std::string path, std::string port, std::string filename);
-
-// void remove_http_https(std::string &str);
-
-// std::string search_file_name_in_url(std::string &str);
-
 class URLInformation {
     public:
+        URLInformation(std::string, std::string);
+
         std::string fullURL;  // http://localhost/pipapupa
         std::string hostname; // localhost
         std::string path;     // /pipapupa
         std::string port;     // 8080
-
-        URLInformation(std::string, std::string);
     
     private:
         void remove_substring(std::string &str, std::string &sbstr);
@@ -33,13 +27,14 @@ class URLInformation {
 
 class FileLoader {
     public:
+        FileLoader(URLInformation, std::string);
+        void download_file();
+    
+    private:
         const char* hostname;
         const char* path;
         const char* port;
         const char* filename;
-
-        FileLoader(URLInformation, std::string);
-        void download_file();
 };
 
 #endif

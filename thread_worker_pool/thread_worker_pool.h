@@ -10,6 +10,12 @@
 #include "../url_file_loader/url_file_loader.h"
 
 class ThreadWorkerPool {
+    public:
+        ThreadWorkerPool(int max);
+        
+        void add_task_into_queue(FileLoader loader);
+        void wait();
+
     private:
         std::vector<pthread_t> threads;
         std::queue<FileLoader> task_queue;
@@ -23,12 +29,6 @@ class ThreadWorkerPool {
 
         static void* handler(void *args);
         void work_function();
-
-    public:
-        void add_task_into_queue(FileLoader loader);
-        void wait();
-
-        ThreadWorkerPool(int max);
 };
 
 #endif
