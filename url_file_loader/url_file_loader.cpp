@@ -1,9 +1,4 @@
-//#include <functional>
-//#include <iostream>
-//#include <optional>
-//#include <stdexcept>
 #include <string>
-//#include <unordered_map>
 #include <vector>
 #include <fstream>
 
@@ -40,17 +35,27 @@ HttpFileLoader::HttpFileLoader(URLInformation _info, std::string _fn)
 
 void HttpFileLoader::download_file() {
     std::cout << get_current_timestamp_with_ms() << ": hostname='" << info.hostname << "'   path='" << info.path << "'   filename='" << filename << "'\n";
-    httplib::Client cli(info.hostname, 8080);
 
-    cli.set_connection_timeout(0, 300000);
-    cli.set_read_timeout(5, 0);
-    cli.set_write_timeout(5, 0);
-    cli.set_max_timeout(5000);
+    if (info.scheme == "https") {
+        httplib::SSLClient sslcli(info.hostname, 443);
+        sslcli.enable_server_certificate_verification(false);
+        write_file(sslcli);
+    } else {
+        httplib::Client cli(info.hostname, 8080);
+        write_file(cli);
+    }
+}
 
-    httplib::Result res = cli.Get(info.path);
+template<typename ClientType>
+void HttpFileLoader::write_file(ClientType &client) {
+    client.set_connection_timeout(0, 300000);
+    client.set_read_timeout(5, 0);
+    client.set_write_timeout(5, 0);
+    client.set_max_timeout(5000);
+
+    httplib::Result res = client.Get(info.path);
     
     if (res) {
-        //std::cout << get_current_timestamp_with_ms() << ": error code: " << res.error() << "\n";
         std::cout << get_current_timestamp_with_ms() << ": file text = " << res->body.data() << "\n";
         std::cout << get_current_timestamp_with_ms() << ": " << res->status << "\n";
         std::cout << get_current_timestamp_with_ms() << ": " << res->get_header_value("Content-Type") << "\n";
@@ -69,34 +74,6 @@ void HttpFileLoader::download_file() {
     } else {
         std::cout << get_current_timestamp_with_ms() << ": " << "error: " << res.error() << "\n";
     }
-
-    httplib::SSLClient sslcli(info.hostname, 443);
-    sslcli.set_max_timeout(5000);
-    sslcli.enable_server_certificate_verification(false);
-
-    res = sslcli.Get(info.path);
-
-    if (res) {
-        //std::cout << get_current_timestamp_with_ms() << ": error code: " << res.error() << "\n";
-        std::cout << get_current_timestamp_with_ms() << ": file text = " << res->body.data() << "\n";
-        std::cout << get_current_timestamp_with_ms() << ": " << res->status << "\n";
-        std::cout << get_current_timestamp_with_ms() << ": " << res->get_header_value("Content-Type") << "\n";
-        std::cout << get_current_timestamp_with_ms() << ": Response body size: " << res->body.size() << " bytes" << "\n"; // ДЛЯ ОТЛАДКИ
-
-        std::ofstream file(filename, std::ios::binary);
-        if (file.is_open()) {
-            file.write(res->body.data(), res->body.size());
-            file.close();
-            std::cout << get_current_timestamp_with_ms() << ": file saved successfully: " << filename << " (" << res->body.size() << " bytes)" << "\n";
-        } else {
-            std::cerr << get_current_timestamp_with_ms() << ": failed to open file for writing: " << filename << "\n";
-        }
-
-        return;
-    } else {
-        std::cout << get_current_timestamp_with_ms() << ": " << "error: " << res.error() << "\n";
-    }
-
 }
 
 // class URLInformation {

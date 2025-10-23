@@ -25,6 +25,9 @@ class HttpFileLoader {
     private:
         URLInformation info;
         std::string filename;
+
+        template<typename ClientType>
+        void write_file(ClientType &client);
 };
 
 #endif
