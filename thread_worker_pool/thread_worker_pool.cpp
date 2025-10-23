@@ -48,7 +48,7 @@ ThreadWorkerPool::ThreadWorkerPool(int max) {
     pthread_mutex_unlock(&mutex);
 }
 
-void ThreadWorkerPool::add_task_into_queue(FileLoader loader) {
+void ThreadWorkerPool::add_task_into_queue(HttpFileLoader loader) {
     pthread_mutex_lock(&mutex);
     task_queue.push(loader);
     pthread_mutex_unlock(&mutex);
@@ -76,7 +76,7 @@ void ThreadWorkerPool::work_function() {
             break;
         }
 
-        FileLoader task = task_queue.front();
+        HttpFileLoader task = task_queue.front();
         task_queue.pop();
         std::cout << get_current_timestamp_with_ms() << ": поток " << " получил задачу" << "\n";
         //std::cout << get_current_timestamp_with_ms() << "  queue size " << task_queue.size() << "\n";

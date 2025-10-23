@@ -1,9 +1,9 @@
-#include <functional>
-#include <iostream>
-#include <optional>
-#include <stdexcept>
+//#include <functional>
+//#include <iostream>
+//#include <optional>
+//#include <stdexcept>
 #include <string>
-#include <unordered_map>
+//#include <unordered_map>
 #include <vector>
 #include <fstream>
 
@@ -15,246 +15,121 @@
 #include <unistd.h>
 #include <netdb.h>
 
+#include <iostream>
+#include <fstream>
+
 #include "../file_rw/file_rw.h"
 #include "../logger/logger.h"
 
 #include "url_file_loader.h"
 
-#define BUFFER_SIZE 1024
-
-// class URLInformation {
+// class HttpFileLoader {
 //     public:
-//         URLInformation(std::string, std::string);
-        
-//         std::string fullURL;  // http://localhost/pipapupa
-//         std::string hostname; // localhost
-//         std::string path;     // /pipapupa
-//         std::string port;     // 8080
-    
-//     private:
-//         void remove_substring(std::string &str, std::string &sbstr);
-//         void remove_http_https(std::string &str);
-//         void search_file_name_in_url(std::string &str);
-// };
-
-
-URLInformation::URLInformation(std::string url, std::string p) {
-    port = p;
-    remove_http_https(url);
-    search_file_name_in_url(url);
-    hostname = url;
-}
-
-void URLInformation::remove_substring(std::string &str, std::string &sbstr) {
-    std::size_t found = str.find(sbstr);
-    if (found != std::string::npos) {
-        str.erase(str.begin(), str.begin()+sbstr.size());
-    }
-}
-
-void URLInformation::remove_http_https(std::string &str) {
-    std::string https_str("https://");
-    std::string http_str("http://");
-    remove_substring(str, https_str);
-    remove_substring(str, http_str);
-}
-
-void URLInformation::search_file_name_in_url(std::string &str) {
-    while (str.size() > 0 && str.back() != '/') {
-        path.push_back(str.back());
-        str.pop_back();
-    }
-    if (str.size() > 0) {
-        path.push_back(str.back());
-        str.pop_back();
-        reverse(path.begin(), path.end());
-    }
-}
-
-// class FileLoader {
-//     public:
-//         FileLoader(URLInformation, std::string);
+//         HttpFileLoader(URLInformation, std::string);
 //         void download_file();
     
 //     private:
-//         const char* hostname;
-//         const char* path;
-//         const char* port;
-//         const char* filename;
+//         URLInformation info;
+//         std::string filename;
 // };
 
-FileLoader::FileLoader(URLInformation info, std::string fn) {
-    hostname = strdup(info.hostname.c_str());
-    path = strdup(info.path.c_str());
-    port = strdup(info.port.c_str());
-    filename = strdup(fn.c_str());
+
+HttpFileLoader::HttpFileLoader(URLInformation _info, std::string _fn)
+    : info(_info), filename(_fn) {
 }
 
-void FileLoader::download_file() {
-    char request[256];
-    char buffer[BUFFER_SIZE];
+void HttpFileLoader::download_file() {
+    std::cout << get_current_timestamp_with_ms() << ": hostname='" << info.hostname << "'   path='" << info.path << "'   filename='" << filename << "'\n";
+    httplib::Client cli(info.hostname, 8080);
 
-    //std::cout << get_current_timestamp_with_ms() << ": hostname='" << hostname << "'   path='" << path << "'   filename='" << filename << "'\n";
+    cli.set_connection_timeout(0, 300000);
+    cli.set_read_timeout(5, 0);
+    cli.set_write_timeout(5, 0);
+    cli.set_max_timeout(5000);
 
-    int sockfd;
-    struct addrinfo hints, *servinfo, *p;
-    int rv;
-    size_t bytes_received;
-    FILE *fp;
+    httplib::Result res = cli.Get(info.path);
+    
+    if (res) {
+        //std::cout << get_current_timestamp_with_ms() << ": error code: " << res.error() << "\n";
+        std::cout << get_current_timestamp_with_ms() << ": file text = " << res->body.data() << "\n";
+        std::cout << get_current_timestamp_with_ms() << ": " << res->status << "\n";
+        std::cout << get_current_timestamp_with_ms() << ": " << res->get_header_value("Content-Type") << "\n";
+        std::cout << get_current_timestamp_with_ms() << ": Response body size: " << res->body.size() << " bytes" << "\n"; // ДЛЯ ОТЛАДКИ
 
-    snprintf(request, sizeof(request), "GET %s HTTP/1.0\r\nHost: %s\r\n\r\n", path, hostname);
-
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-
-    if ((rv = getaddrinfo(hostname, port, &hints, &servinfo)) != 0) {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        return;
-    }
-
-    for (p = servinfo; p != NULL; p = p->ai_next) {
-        if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
-            perror("socket");
-            continue;
+        std::ofstream file(filename, std::ios::binary);
+        if (file.is_open()) {
+            file.write(res->body.data(), res->body.size());
+            file.close();
+            std::cout << get_current_timestamp_with_ms() << ": file saved successfully: " << filename << " (" << res->body.size() << " bytes)" << "\n";
+        } else {
+            std::cerr << get_current_timestamp_with_ms() << ": failed to open file for writing: " << filename << "\n";
         }
 
-        if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
-            close(sockfd);
-            perror("connect");
-            continue;
+        return;
+    } else {
+        std::cout << get_current_timestamp_with_ms() << ": " << "error: " << res.error() << "\n";
+    }
+
+    httplib::SSLClient sslcli(info.hostname, 443);
+    sslcli.set_max_timeout(5000);
+    sslcli.enable_server_certificate_verification(false);
+
+    res = sslcli.Get(info.path);
+
+    if (res) {
+        //std::cout << get_current_timestamp_with_ms() << ": error code: " << res.error() << "\n";
+        std::cout << get_current_timestamp_with_ms() << ": file text = " << res->body.data() << "\n";
+        std::cout << get_current_timestamp_with_ms() << ": " << res->status << "\n";
+        std::cout << get_current_timestamp_with_ms() << ": " << res->get_header_value("Content-Type") << "\n";
+        std::cout << get_current_timestamp_with_ms() << ": Response body size: " << res->body.size() << " bytes" << "\n"; // ДЛЯ ОТЛАДКИ
+
+        std::ofstream file(filename, std::ios::binary);
+        if (file.is_open()) {
+            file.write(res->body.data(), res->body.size());
+            file.close();
+            std::cout << get_current_timestamp_with_ms() << ": file saved successfully: " << filename << " (" << res->body.size() << " bytes)" << "\n";
+        } else {
+            std::cerr << get_current_timestamp_with_ms() << ": failed to open file for writing: " << filename << "\n";
         }
-        break;
-    }
 
-    if (p == NULL) {
-        fprintf(stderr, "Failed to connect\n");
         return;
+    } else {
+        std::cout << get_current_timestamp_with_ms() << ": " << "error: " << res.error() << "\n";
     }
 
-    freeaddrinfo(servinfo);
-
-    send(sockfd, request, strlen(request), 0);
-
-    fp = fopen(filename, "wb");
-
-    if (!fp) {
-        perror("fopen");
-        close(sockfd);
-        return;
-    }
-
-    while ((bytes_received = recv(sockfd, buffer, BUFFER_SIZE, 0)) > 0) {
-        fwrite(buffer, 1, bytes_received, fp);
-    }
-
-    fclose(fp);
-    close(sockfd);
-
-    return;
 }
 
-// void remove_substring(std::string &str, std::string &sbstr)
-// {
-//     std::size_t found = str.find(sbstr);
-//     if (found != std::string::npos)
-//     {
-//         str.erase(str.begin(), str.begin()+sbstr.size());
-//     }
-// }
+// class URLInformation {
+//     public:
+//         URLInformation(std::string);
 
-// void remove_http_https(std::string &str)
-// {
-//     std::string https_str("https://");
-//     std::string http_str("http://");
+//         std::string fullURL;  // http://localhost/eny/pipapupa.flmtr
+//         std::string hostname; // localhost
+//         std::string path;     // /eny/pipapupa.flmtr
+//         int port;             // 8080
+//         std::string scheme;   // http:// or https://
+// };
 
-//     remove_substring(str, https_str);
-//     remove_substring(str, http_str);
-// }
 
-// std::string search_file_name_in_url(std::string &str)
-// {
-//     std::string filename;
-//     while (str.size() > 0 && str.back() != '/')
-//     {
-//         filename.push_back(str.back());
-//         str.pop_back();
-//     }
-//     if (str.size() > 0)
-//     {
-//         filename.push_back(str.back());
-//         str.pop_back();
-//         reverse(filename.begin(), filename.end());
-//     }
-//     return filename;
-// }
+URLInformation::URLInformation(std::string _url) {
+    fullURL = _url;
+    port = 8080;
 
-// int download_file(std::string cpphostname, std::string cpppath, std::string cppport, std::string cppfilename)
-// {
-//     std::cout << "download func: " << " hostname = " << cpphostname << ". path = " << cpppath << ", filename = " << cppfilename << "\n";
-//     const char* hostname = string_to_char_pointer(cpphostname);
-//     const char* path = string_to_char_pointer(cpppath);
-//     const char* port = string_to_char_pointer(cppport);
-//     const char* filename = string_to_char_pointer(cppfilename);
-//     std::cout << "download func C str: " << " hostname = " << hostname << ". path = " << path << ", filename = " << filename << ", port = " << port <<"\n";
+    if (_url.find("https://") == 0) {
+        scheme = "https";
+        hostname = fullURL.substr(8); // Убираем "https://"
+        port = 443;
+    } else if (fullURL.find("http://") == 0) {
+        scheme = "http";
+        hostname = fullURL.substr(7); // Убираем "http://"
+        port = 80;
+    }
 
-//     char request[256];
-//     char buffer[BUFFER_SIZE];
-
-//     int sockfd;
-//     struct addrinfo hints, *servinfo, *p;
-//     int rv;
-//     size_t bytes_received;
-//     FILE *fp;
-
-//     snprintf(request, sizeof(request), "GET %s HTTP/1.0\r\nHost: %s\r\n\r\n", path, hostname);
-
-//     memset(&hints, 0, sizeof(hints));
-//     hints.ai_family = AF_UNSPEC;
-//     hints.ai_socktype = SOCK_STREAM;
-
-//     if ((rv = getaddrinfo(hostname, port, &hints, &servinfo)) != 0) {
-//         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-//         return 1;
-//     }
-
-//     for (p = servinfo; p != NULL; p = p->ai_next) {
-//         if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
-//             perror("socket");
-//             continue;
-//         }
-
-//         if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
-//             close(sockfd);
-//             perror("connect");
-//             continue;
-//         }
-//         break;
-//     }
-
-//     if (p == NULL) {
-//         fprintf(stderr, "Failed to connect\n");
-//         return 2;
-//     }
-
-//     freeaddrinfo(servinfo);
-
-//     send(sockfd, request, strlen(request), 0);
-
-//     fp = fopen(filename, "wb");
-
-//     if (!fp) {
-//         perror("fopen");
-//         close(sockfd);
-//         return 3;
-//     }
-
-//     while ((bytes_received = recv(sockfd, buffer, BUFFER_SIZE, 0)) > 0) {
-//         fwrite(buffer, 1, bytes_received, fp);
-//     }
-
-//     fclose(fp);
-//     close(sockfd);
-
-//     return 0;
-// }
+    size_t path_start = hostname.find('/');
+    if (path_start != std::string::npos) {
+        path = hostname.substr(path_start);
+        hostname = hostname.substr(0, path_start);
+    } else {
+        path = "/";
+    }
+}

@@ -13,12 +13,12 @@ class ThreadWorkerPool {
     public:
         ThreadWorkerPool(int max);
         
-        void add_task_into_queue(FileLoader loader);
+        void add_task_into_queue(HttpFileLoader loader);
         void wait();
 
     private:
         std::vector<pthread_t> threads;
-        std::queue<FileLoader> task_queue;
+        std::queue<HttpFileLoader> task_queue;
 
         pthread_mutex_t mutex;
         sem_t sem;

@@ -15,9 +15,9 @@
 class ProcessWorkerPool {
     public:
         std::vector<pid_t> pids;
-        std::vector<FileLoader> tasks;
+        std::vector<HttpFileLoader> tasks;
 
-        void add_task(FileLoader loader);
+        void add_task(HttpFileLoader loader);
         void create_processes(void);
         void waiting_processes(void);
 };

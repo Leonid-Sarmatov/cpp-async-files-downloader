@@ -27,7 +27,7 @@
 //         void waiting_processes():
 // }
 
-void ProcessWorkerPool::add_task(FileLoader fileLoader) {
+void ProcessWorkerPool::add_task(HttpFileLoader fileLoader) {
     pids.push_back(-1);
     tasks.push_back(fileLoader);
 }

@@ -1,40 +1,30 @@
 #ifndef _URL_FILE_LOADER
 #define _URL_FILE_LOADER
 
-#include <functional>
-#include <iostream>
-#include <optional>
-#include <stdexcept>
 #include <string>
-#include <unordered_map>
-#include <vector>
-#include <fstream>
+
+#define CPPHTTPLIB_OPENSSL_SUPPORT
+#include "httplib.h"
 
 class URLInformation {
     public:
-        URLInformation(std::string, std::string);
+        URLInformation(std::string);
 
-        std::string fullURL;  // http://localhost/pipapupa
+        std::string fullURL;  // http://localhost/eny/pipapupa.flmtr
         std::string hostname; // localhost
-        std::string path;     // /pipapupa
-        std::string port;     // 8080
-    
-    private:
-        void remove_substring(std::string &str, std::string &sbstr);
-        void remove_http_https(std::string &str);
-        void search_file_name_in_url(std::string &str);
+        std::string path;     // /eny/pipapupa.flmtr
+        int port;             // 8080
+        std::string scheme;   // http:// or https://
 };
 
-class FileLoader {
+class HttpFileLoader {
     public:
-        FileLoader(URLInformation, std::string);
+        HttpFileLoader(URLInformation, std::string);
         void download_file();
     
     private:
-        const char* hostname;
-        const char* path;
-        const char* port;
-        const char* filename;
+        URLInformation info;
+        std::string filename;
 };
 
 #endif

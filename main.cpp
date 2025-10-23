@@ -45,15 +45,15 @@ int main(int argc, const char* argv[])
     ThreadWorkerPool wp(cfg.workers_num);
 
     for (int i = 0; i < lines.size()-1; i++) {
-        std::string port_string;
-        port_string.assign("8080");
-        URLInformation info(lines[i], port_string);
+        //std::string port_string;
+        //port_string.assign("8080");
+        URLInformation info(lines[i]);
 
         char fn[64];
         snprintf(fn, sizeof(fn), "./%s/file_%d", argv[2], i);
         std::string _filename;
         _filename.assign(fn);
-        FileLoader loader(info, _filename);
+        HttpFileLoader loader(info, _filename);
 
         wp.add_task_into_queue(loader);
     }

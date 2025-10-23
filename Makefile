@@ -1,6 +1,8 @@
 # Компилятор и флаги
 CXX := g++
 CXXFLAGS := -std=c++11 -pthread -g -O0
+LDFLAGS := -pthread       
+LDLIBS := -lssl -lcrypto  # Для работы класса httplib::SSLClient
 
 # Цели
 TARGET := main.exe
@@ -20,7 +22,7 @@ $(shell mkdir -p $(addprefix $(BUILD_DIR)/,$(SRC_DIRS)))
 all: $(BUILD_DIR)/$(TARGET)
 
 $(BUILD_DIR)/$(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $^
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 $(BUILD_DIR)/%.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
