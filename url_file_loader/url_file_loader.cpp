@@ -12,6 +12,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <regex>
 
 #include "../file_rw/file_rw.h"
 #include "../logger/logger.h"
@@ -20,17 +21,21 @@
 
 // class HttpFileLoader {
 //     public:
-//         HttpFileLoader(URLInformation, std::string);
+//         HttpFileLoader(URLInformation, FileSaver&);
 //         void download_file();
     
 //     private:
 //         URLInformation info;
+//         FileSaver &saver;
 //         std::string filename;
+
+//         template<typename ClientType>
+//         void write_file(ClientType &client);
 // };
 
 
-HttpFileLoader::HttpFileLoader(URLInformation _info, std::string _fn)
-    : info(_info), filename(_fn) {
+HttpFileLoader::HttpFileLoader(URLInformation _info, FileSaver &_saver)
+    : info(_info), saver(_saver) {
 }
 
 void HttpFileLoader::download_file() {
@@ -48,6 +53,7 @@ void HttpFileLoader::download_file() {
 
 template<typename ClientType>
 void HttpFileLoader::write_file(ClientType &client) {
+    // Таймауты соединения
     client.set_connection_timeout(0, 300000);
     client.set_read_timeout(5, 0);
     client.set_write_timeout(5, 0);
@@ -56,19 +62,20 @@ void HttpFileLoader::write_file(ClientType &client) {
     httplib::Result res = client.Get(info.path);
     
     if (res) {
-        std::cout << get_current_timestamp_with_ms() << ": file text = " << res->body.data() << "\n";
-        std::cout << get_current_timestamp_with_ms() << ": " << res->status << "\n";
-        std::cout << get_current_timestamp_with_ms() << ": " << res->get_header_value("Content-Type") << "\n";
-        std::cout << get_current_timestamp_with_ms() << ": Response body size: " << res->body.size() << " bytes" << "\n"; // ДЛЯ ОТЛАДКИ
+        std::cout << get_current_timestamp_with_ms() << ": response code: " << res->status << "\n";
 
-        std::ofstream file(filename, std::ios::binary);
-        if (file.is_open()) {
-            file.write(res->body.data(), res->body.size());
-            file.close();
-            std::cout << get_current_timestamp_with_ms() << ": file saved successfully: " << filename << " (" << res->body.size() << " bytes)" << "\n";
-        } else {
-            std::cerr << get_current_timestamp_with_ms() << ": failed to open file for writing: " << filename << "\n";
+        // Если задан заголовок Content-Disposition с типом attachment, то извлекаем имя файла из него
+        std::string name_header = res->get_header_value("Content-Disposition");
+        if (name_header.find("attachment") != std::string::npos) {
+            std::regex pattern("filename\\s*=\\s*\"?([^\"]*)\"?");
+            std::smatch matches;
+            if (std::regex_search(name_header, matches, pattern) && matches.size() > 0) {
+                info.filename = matches[1].str();
+            }
         }
+
+        // Создание и запись в файл тела сообщения
+        saver.save_file(info.filename, res->body.data(), res->body.size());
 
         return;
     } else {
@@ -85,6 +92,7 @@ void HttpFileLoader::write_file(ClientType &client) {
 //         std::string path;     // /eny/pipapupa.flmtr
 //         int port;             // 8080
 //         std::string scheme;   // http:// or https://
+//         std::string filename; // pipapupa.flmtr
 // };
 
 
@@ -92,6 +100,7 @@ URLInformation::URLInformation(std::string _url) {
     fullURL = _url;
     port = 8080;
 
+    // Обрезка http:// или https://, сохранение протокла и порта в поля класса
     if (_url.find("https://") == 0) {
         scheme = "https";
         hostname = fullURL.substr(8); // Убираем "https://"
@@ -102,11 +111,20 @@ URLInformation::URLInformation(std::string _url) {
         port = 80;
     }
 
+    // Извлечение из URL и сохранение полного пути к файлу
     size_t path_start = hostname.find('/');
     if (path_start != std::string::npos) {
         path = hostname.substr(path_start);
         hostname = hostname.substr(0, path_start);
     } else {
         path = "/";
+    }
+
+    // Извлечение из пути и сохрание имени файла
+    size_t last_slash = fullURL.find_last_of('/');
+    if (last_slash != std::string::npos) {
+        filename = fullURL.substr(last_slash + 1);
+    } else {
+        filename = "";
     }
 }

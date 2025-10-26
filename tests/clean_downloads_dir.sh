@@ -1,1 +1,1 @@
-yes | rm -rf ./bubilda/*
+yes | rm -rf ./downloads/*

@@ -9,6 +9,7 @@
 #include "url_file_loader/url_file_loader.h"
 #include "process_worker_pool/process_worker_pool.h"
 #include "thread_worker_pool/thread_worker_pool.h"
+#include "file_rw/file_rw.h"
 
 
 int main(int argc, const char* argv[])
@@ -42,6 +43,10 @@ int main(int argc, const char* argv[])
     wp.waiting_processes();
     */
 
+    std::string _filename;
+    _filename.assign(argv[2]);
+    FileSaver saver(_filename);
+
     ThreadWorkerPool wp(cfg.workers_num);
 
     for (int i = 0; i < lines.size()-1; i++) {
@@ -49,11 +54,11 @@ int main(int argc, const char* argv[])
         //port_string.assign("8080");
         URLInformation info(lines[i]);
 
-        char fn[64];
-        snprintf(fn, sizeof(fn), "./%s/file_%d", argv[2], i);
-        std::string _filename;
-        _filename.assign(fn);
-        HttpFileLoader loader(info, _filename);
+        //char fn[64];
+        //snprintf(fn, sizeof(fn), "./%s/file_%d", argv[2], i);
+        //std::string _filename;
+        //_filename.assign(fn);
+        HttpFileLoader loader(info, saver);
 
         wp.add_task_into_queue(loader);
     }
